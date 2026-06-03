@@ -30,7 +30,7 @@ class DoubanRank(_PluginBase):
     # 插件图标
     plugin_icon = "movie.jpg"
     # 插件版本
-    plugin_version = "2.0.1"
+    plugin_version = "2.0.2"
     # 插件作者
     plugin_author = "jxxghp"
     # 作者主页
@@ -600,12 +600,12 @@ class DoubanRank(_PluginBase):
                                     f'未能通过豆瓣ID {douban_id} 获取到TMDB信息，标题：{title}，豆瓣ID：{douban_id}')
                                 continue
                             meta.type = tmdbinfo.get('media_type')
-                            mediainfo = self.chain.recognize_media(meta=meta, tmdbid=tmdbinfo.get("id"))
+                            mediainfo = self.chain.recognize_media(mtype=mtype, meta=meta, tmdbid=tmdbinfo.get("id"))
                             if not mediainfo:
                                 logger.warn(f'TMDBID {tmdbinfo.get("id")} 未识别到媒体信息')
                                 continue
                         else:
-                            mediainfo = self.chain.recognize_media(meta=meta, doubanid=douban_id)
+                            mediainfo = self.chain.recognize_media(mtype=mtype, meta=meta, doubanid=douban_id)
                             if not mediainfo:
                                 logger.warn(f'豆瓣ID {douban_id} 未识别到媒体信息')
                                 continue
@@ -620,9 +620,14 @@ class DoubanRank(_PluginBase):
                         logger.info(f'{mediainfo.title_year} 评分不符合要求')
                         continue
                     # 查询缺失的媒体信息
-                    exist_flag, _ = DownloadChain().get_no_exists_info(meta=meta, mediainfo=mediainfo)
-                    if exist_flag:
-                        logger.info(f'{mediainfo.title_year} 媒体库中已存在')
+                    try:
+                        exist_flag, _ = DownloadChain().get_no_exists_info(meta=meta, mediainfo=mediainfo)
+                        if exist_flag:
+                            logger.info(f'{mediainfo.title_year} 媒体库中已存在')
+                            continue
+                    except Exception as e:
+                        logger.warn(f'检查媒体库是否存在时出错：{str(e)}')
+                        # 出错时不订阅，避免重复
                         continue
                     # 判断用户是否已经添加订阅
                     subscribechain = SubscribeChain()
@@ -704,6 +709,17 @@ class DoubanRank(_PluginBase):
                     year = re.findall(r"\b(19\d{2}|20\d{2})\b", description)
                     if year:
                         rss_info['year'] = year[0]
+
+                    # 从RSS中提取媒体类型（RSSHub豆瓣榜单通常提供category标签）
+                    category = DomUtils.tag_value(item, "category", default="")
+                    if category:
+                        rss_info['type'] = category.strip().lower()
+                    else:
+                        # 从description中推断类型（兜底方案）
+                        if re.search(r'电视剧|tv|TV', description):
+                            rss_info['type'] = 'tv'
+                        elif re.search(r'电影|movie|MOVIE', description):
+                            rss_info['type'] = 'movie'
 
                     # 返回对象
                     ret_array.append(rss_info)
