@@ -24,9 +24,9 @@ from app.utils.http import RequestUtils
 
 class DoubanRank(_PluginBase):
     # 插件名称
-    plugin_name = "豆瓣榜单订阅"
+    plugin_name = "豆瓣榜单订阅修改版"
     # 插件描述
-    plugin_desc = "监控豆瓣热门榜单，自动添加订阅。"
+    plugin_desc = "监控豆瓣热门榜单，自动添加订阅（修改版，修复电视剧重复订阅问题）。"
     # 插件图标
     plugin_icon = "movie.jpg"
     # 插件版本
